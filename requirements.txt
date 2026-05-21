@@ -1,2 +1,6 @@
 paho-mqtt
 pytest
+fastapi>=0.115.0
+uvicorn[standard]>=0.30.0
+# Windows / dar Python kurulumlarında IANA saat dilimleri için (isteğe bağlı)
+tzdata>=2024.1

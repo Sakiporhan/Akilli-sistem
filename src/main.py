@@ -12,7 +12,14 @@ from src.petri.engine import PetriEngine
 def _simulate_locally() -> None:
     config = load_config()
     engine = PetriEngine(room_capacity=config.room_capacity, room_id=config.room_id)
-    controller = ControllerService(engine=engine)
+    controller = ControllerService(
+        engine=engine,
+        fire_temperature_threshold_c=config.fire_temperature_threshold_c,
+        fire_temperature_reset_threshold_c=config.fire_temperature_reset_threshold_c,
+        fire_temperature_debounce_sec=config.fire_temperature_debounce_sec,
+        fire_temperature_clear_debounce_sec=config.fire_temperature_clear_debounce_sec,
+        peak_occupancy_threshold=config.peak_occupancy_threshold,
+    )
     demo_events: List[Dict[str, object]] = [
         {"event_type": "entry", "timestamp": now_iso(), "room_id": config.room_id, "source": "sim", "confidence": 0.99},
         {"event_type": "entry", "timestamp": now_iso(), "room_id": config.room_id, "source": "sim", "confidence": 0.98},
@@ -31,14 +38,27 @@ def _simulate_locally() -> None:
 def _run_controller() -> None:
     config = load_config()
     engine = PetriEngine(room_capacity=config.room_capacity, room_id=config.room_id)
-    controller = ControllerService(engine=engine)
+    controller = ControllerService(
+        engine=engine,
+        fire_temperature_threshold_c=config.fire_temperature_threshold_c,
+        fire_temperature_reset_threshold_c=config.fire_temperature_reset_threshold_c,
+        fire_temperature_debounce_sec=config.fire_temperature_debounce_sec,
+        fire_temperature_clear_debounce_sec=config.fire_temperature_clear_debounce_sec,
+        peak_occupancy_threshold=config.peak_occupancy_threshold,
+    )
     publisher = MqttEventPublisher(config.broker_host, config.broker_port)
     publisher.connect()
+    # Köprü / dinleyiciler ilk state'i alsın; aksi halde _raw_state boş kalır.
+    try:
+        initial = controller.process_payload({})
+        publisher.publish_json(config.topics["state"], initial, qos=1)
+    except Exception as exc:
+        print(f"[controller] ilk state yayini basarisiz: {exc}")
 
     def on_event(_topic: str, payload: Dict[str, object]) -> None:
         try:
             state = controller.process_payload(payload)
-            publisher.publish_json(config.topics["state"], state, qos=0)
+            publisher.publish_json(config.topics["state"], state, qos=1)
             alert = controller.build_alert(state, config.room_id)
             if alert:
                 publisher.publish_json(config.topics["alerts"], alert, qos=0)
@@ -48,7 +68,13 @@ def _run_controller() -> None:
     subscriber = MqttEventSubscriber(
         host=config.broker_host,
         port=config.broker_port,
-        topics=[config.topics["entry"], config.topics["exit"], config.topics["emergency"], config.topics["control"]],
+        topics=[
+            config.topics["entry"],
+            config.topics["exit"],
+            config.topics["emergency"],
+            config.topics["control"],
+            config.topics["telemetry"],
+        ],
         on_event=on_event,
     )
     subscriber.connect()

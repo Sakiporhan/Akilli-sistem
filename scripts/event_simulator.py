@@ -16,6 +16,7 @@ SCENARIOS = {
     "capacity_fill": ["entry"] * 12,
     "fire_drill": ["entry", "entry", "fire", "reset", "exit"],
     "fire_live": ["entry", "entry", "fire"],
+    "idle": [],  # bos: publish_scenario guvenli sicaklik telemetrisi gonderir
     "inactivity_watch": ["entry", "inactivity", "reset"],
 }
 
@@ -103,20 +104,43 @@ def publish_steps(steps: List[str], delay_seconds: float) -> None:
         publisher.disconnect()
 
 
+def publish_temperature(temperature_c: float, delay_seconds: float, source: str) -> None:
+    cfg = load_config()
+    publisher = MqttEventPublisher(cfg.broker_host, cfg.broker_port)
+    publisher.connect()
+    payload: Dict[str, object] = {
+        "temperature_c": float(temperature_c),
+        "timestamp": now_iso(),
+        "room_id": cfg.room_id,
+        "source": source,
+        "confidence": 1.0,
+    }
+    try:
+        publisher.publish_json(cfg.topics["telemetry"], payload)
+        print(f"Published temperature telemetry: {payload}")
+        time.sleep(delay_seconds)
+    finally:
+        publisher.disconnect()
+
+
 def publish_scenario(name: str, delay_seconds: float) -> None:
     if name not in SCENARIOS:
         supported = ", ".join(sorted(SCENARIOS))
         raise ValueError(f"Unknown scenario: {name}. Supported scenarios: {supported}")
-    publish_steps(SCENARIOS[name], delay_seconds)
+    steps = SCENARIOS[name]
+    if not steps:
+        publish_temperature(22.0, delay_seconds, "event_simulator_baseline")
+        return
+    publish_steps(steps, delay_seconds)
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Publish demo MQTT event scenarios.")
     parser.add_argument(
         "--scenario",
-        default="default",
+        default="idle",
         choices=sorted(SCENARIOS),
-        help="Scenario name to publish.",
+        help="Scenario name to publish (varsayilan: idle = yangin yok, 22°C telemetri).",
     )
     parser.add_argument(
         "--delay",
@@ -158,11 +182,25 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Append a reset event after custom occupancy or fire events.",
     )
+    parser.add_argument(
+        "--temperature",
+        type=float,
+        default=None,
+        help="Publish a single temperature telemetry value in Celsius.",
+    )
+    parser.add_argument(
+        "--temperature-source",
+        default="event_simulator_temp_sensor",
+        help="Source label for --temperature payload.",
+    )
     return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
+    if args.temperature is not None:
+        publish_temperature(args.temperature, args.delay, args.temperature_source)
+        return
     if any(
         [
             args.start_occupancy,

@@ -47,10 +47,14 @@ class PetriEngine:
     def _emergency_detected(self, reason: str) -> None:
         self.state.emergency = True
         self.state.last_emergency_reason = reason
+        if reason == "fire":
+            # Fire evacuation rule: room is considered immediately empty.
+            self.state.occupancy = 0
 
     def _reset_requested(self) -> None:
         self.state.emergency = False
         self.state.last_emergency_reason = ""
+        self.state.occupancy = 0
 
     def clear_emergency(self) -> Dict[str, object]:
         self.state.emergency = False

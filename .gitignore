@@ -1,0 +1,52 @@
+# Python
+__pycache__/
+*.pyc
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+ENV/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+.coverage.*
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Veri / gizli dosyalar
+.data/
+*.db
+.env
+.env.local
+.env.*.local
+
+# IDE / editör
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Cursor (yerel MCP ayarları)
+.cursor/
+
+# Node / frontend
+node_modules/
+web/smartroom-dashboard/node_modules/
+web/smartroom-dashboard/dist/
+*.tsbuildinfo
+
+# Yerel MQTT broker kopyası (mosquitto.exe ayrı kurulur; bkz. README)
+Mosquitto/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini

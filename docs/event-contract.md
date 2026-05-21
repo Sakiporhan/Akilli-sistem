@@ -10,6 +10,7 @@ Varsayılan topic prefix'i `building`, varsayılan oda kimliği `room1`'dir.
 - `building/room1/exit`: çıkış olayları
 - `building/room1/emergency`: `fire` ve `inactivity` olayları
 - `building/room1/control`: `reset` gibi kontrol olayları
+- `building/room1/telemetry`: sıcaklık gibi sensör telemetrisi
 - `building/room1/state`: controller tarafından yayınlanan standart oda durumu
 - `building/room1/alerts`: dashboard veya başka sistemlerin dinlediği alarmlar
 
@@ -41,6 +42,19 @@ Tüm giriş topic'lerinde aynı JSON şeması kullanılır.
 - `exit` topic'i sadece `event_type: "exit"` kabul eder.
 - `emergency` topic'i `fire` veya `inactivity` kabul eder.
 - `control` topic'i şu an sadece `reset` kabul eder.
+- `telemetry` topic'i sıcaklık payload'ı kabul eder ve eşik aşımında otomatik `fire` üretir.
+
+`telemetry` örnek payload:
+
+```json
+{
+  "temperature_c": 74.2,
+  "timestamp": "2026-05-05T11:00:00+00:00",
+  "room_id": "room1",
+  "source": "temp_sensor_1",
+  "confidence": 1.0
+}
+```
 
 ## Doğrulama Kuralları
 
@@ -48,6 +62,9 @@ Tüm giriş topic'lerinde aynı JSON şeması kullanılır.
 - Tanımsız `event_type` kabul edilmez.
 - `confidence` aralık dışında olamaz.
 - Donanım veya model katmanı `room_id` ve `source` alanlarını boş bırakamaz.
+- `FIRE_TEMP_THRESHOLD_C` (varsayılan `60.0`) ve üstü sıcaklıkta controller `fire` event'i tetikler (`FIRE_TEMP_DEBOUNCE_SEC` varsayılan `0.0`).
+- `FIRE_TEMP_RESET_THRESHOLD_C` (varsayılan `55.0`) ve altına düşen sıcaklıkta controller otomatik `reset` event'i üretir (`FIRE_TEMP_CLEAR_DEBOUNCE_SEC` varsayılan `0.0`).
+- Bu iki farklı eşik hysteresis davranışı sağlar ve sınır değer çevresindeki titreşimde alarm dalgalanmasını azaltır.
 
 ## Controller `state` Çıkışı
 

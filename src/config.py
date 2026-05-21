@@ -17,6 +17,13 @@ class AppConfig:
     broker_port: int = 1883
     room_id: str = "room1"
     room_capacity: int = 10
+    fire_temperature_threshold_c: float = 60.0
+    fire_temperature_reset_threshold_c: float = 55.0
+    fire_temperature_debounce_sec: float = 0.0
+    fire_temperature_clear_debounce_sec: float = 0.0
+    # Doluluk >= bu sayıda "peak" (MQTT state: occupancy_load).
+    peak_occupancy_threshold: int = 5
+    dashboard_bridge_port: int = 8765
     topic_prefix: str = "building"
     topics: Dict[str, str] = field(default_factory=dict)
 
@@ -28,6 +35,7 @@ class AppConfig:
                 "exit": f"{base}/exit",
                 "emergency": f"{base}/emergency",
                 "control": f"{base}/control",
+                "telemetry": f"{base}/telemetry",
                 "state": f"{base}/state",
                 "alerts": f"{base}/alerts",
             }
@@ -39,5 +47,11 @@ def load_config() -> AppConfig:
         broker_port=int(_env_str("MQTT_BROKER_PORT", "1883")),
         room_id=os.getenv("ROOM_ID", "room1"),
         room_capacity=int(os.getenv("ROOM_CAPACITY", "10")),
+        fire_temperature_threshold_c=float(_env_str("FIRE_TEMP_THRESHOLD_C", "60.0")),
+        fire_temperature_reset_threshold_c=float(_env_str("FIRE_TEMP_RESET_THRESHOLD_C", "55.0")),
+        fire_temperature_debounce_sec=float(_env_str("FIRE_TEMP_DEBOUNCE_SEC", "0.0")),
+        fire_temperature_clear_debounce_sec=float(_env_str("FIRE_TEMP_CLEAR_DEBOUNCE_SEC", "0.0")),
+        peak_occupancy_threshold=int(_env_str("PEAK_OCCUPANCY_THRESHOLD", "5")),
+        dashboard_bridge_port=int(_env_str("DASHBOARD_BRIDGE_PORT", "8765")),
         topic_prefix=os.getenv("TOPIC_PREFIX", "building"),
     )

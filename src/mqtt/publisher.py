@@ -17,6 +17,8 @@ class MqttEventPublisher:
         for _ in range(10):
             try:
                 self.client.connect(self.host, self.port, keepalive=30)
+                # Ağ döngüsü olmadan publish() brokere iletilmez (ayrı istemci = ayrı döngü).
+                self.client.loop_start()
                 return
             except OSError as exc:
                 last_exc = exc
@@ -32,4 +34,11 @@ class MqttEventPublisher:
             raise RuntimeError(f"MQTT publish failed rc={message.rc} topic={topic}")
 
     def disconnect(self) -> None:
-        self.client.disconnect()
+        try:
+            self.client.loop_stop()
+        except Exception:
+            pass
+        try:
+            self.client.disconnect()
+        except Exception:
+            pass
